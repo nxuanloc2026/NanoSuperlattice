@@ -123,14 +123,22 @@ def build_scene(config):
             "variants": variants, "elementColors": colors}
 
 
-def write_viewer(config, output, *, scattering=None):
-    """Write a self-contained viewer that can be opened locally in a browser."""
+def write_viewer(config, output, *, scattering=None, overlays=()):
+    """Write a self-contained viewer that can be opened locally in a browser.
+
+    overlays are datasets from integrations.results.read_dataset. Profiles are
+    drawn over the matching SAXS or WAXS profile; detector images get their
+    own panel with their recorded axes.
+    """
     scene = build_scene(config)
     if scattering is None:
         scattering = "scattering" in config
     if scattering:
         from scattering import simulate_scattering
         scene["scattering"] = simulate_scattering(config, scene)
+    if overlays:
+        from integrations.results import viewer_payload
+        scene["imported"] = [viewer_payload(d) for d in overlays]
     payload = json.dumps(scene, ensure_ascii=True, separators=(",", ":"), allow_nan=False)
     # A label may contain HTML characters. Keep the embedded script element intact.
     payload = payload.replace("<", r"\u003c").replace(">", r"\u003e").replace("&", r"\u0026")
@@ -150,15 +158,25 @@ def main():
     parser.add_argument("--scattering", action=argparse.BooleanOptionalAction, default=None,
                         help="Simulate SAXS and WAXS, or skip them with --no-scattering. "
                              "Default: simulate if the JSON contains a scattering block.")
+    parser.add_argument("--overlay", action="append", default=[], metavar="CSV[,RUN_JSON]",
+                        help="Imported result to show with the model. Repeat for several. "
+                             "A sibling NAME.run.json or run.json is used when not given.")
     args = parser.parse_args()
     try:
         config = json.loads(args.config.read_text(encoding="utf-8-sig"))
+        overlays = []
+        if args.overlay:
+            from integrations.results import parse_overlay_argument
+            overlays = [parse_overlay_argument(text) for text in args.overlay]
+            for dataset in overlays:
+                for warning in dataset["warnings"]:
+                    print(f"{dataset['source']}: {warning}")
         output = args.output or args.config.with_suffix(".html")
         if output.suffix.lower() not in {".html", ".htm"}:
             raise ValueError("Choose an output filename ending in .html or .htm.")
         if output.resolve() in {args.config.resolve(), (HERE / "nanocrystal_viewer.html").resolve()}:
             raise ValueError("Choose an output different from the input and viewer template.")
-        print(write_viewer(config, output, scattering=args.scattering).resolve())
+        print(write_viewer(config, output, scattering=args.scattering, overlays=overlays).resolve())
     except (ValueError, OSError, KeyError, TypeError) as exc:
         parser.exit(2, f"Could not build the viewer: {exc}\n")
 

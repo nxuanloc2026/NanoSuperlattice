@@ -41,6 +41,8 @@ pre{font:13px/1.5 Consolas,monospace;margin:6px 0;white-space:pre;color:var(--in
 .scatter-peaks table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13px}
 .scatter-peaks th,.scatter-peaks td{padding:5px 9px;border-bottom:1px solid #e2ebe8;text-align:right;white-space:nowrap}
 .scatter-peaks th{position:sticky;top:0;background:#f3f7f6}.scatter-peaks td:first-child,.scatter-peaks th:first-child{text-align:left}
+#imported{margin-top:32px}#imported header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}#imported h2{font-size:26px}
+.meta-table{border-collapse:collapse;width:100%;font-size:13px}.meta-table th,.meta-table td{padding:5px 8px;border-bottom:1px solid #e2ebe8;text-align:left;vertical-align:top;overflow-wrap:anywhere}.meta-table th{color:var(--sub);font-weight:600;white-space:nowrap}
 @media(max-width:760px){.scatter-grid{grid-template-columns:1fr}.scatter-grid canvas{height:295px}}
 @media(max-width:760px){.cards{grid-template-columns:1fr}.orientation{grid-template-columns:1fr}.card-head{min-height:47px}canvas{height:clamp(270px,46vh,440px)}main{padding:13px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
@@ -94,7 +96,7 @@ pre{font:13px/1.5 Consolas,monospace;margin:6px 0;white-space:pre;color:var(--in
   <article class="card">
    <div class="card-head"><h3 id="scatter-profile-heading">Intensity profile</h3></div>
    <canvas id="scatter-profile" role="img" aria-label="Relative intensity versus scattering vector magnitude. Raw values available as CSV."></canvas>
-   <div class="card-foot"><span class="subtle">Each plot uses its own maximum intensity.</span><button type="button" id="scatter-profile-csv">Profile CSV</button></div>
+   <div class="card-foot"><span class="subtle">Each plot uses its own maximum intensity.</span><div class="legend" id="scatter-overlay-legend"></div><label id="scatter-overlay-scale" class="subtle" hidden title="On: one scale factor fitted in log space where the model exceeds 0.1 % of its maximum. Off: each imported curve is scaled to its own maximum."><input type="checkbox" id="scatter-overlay-fit" checked> Scale imported curves to model</label><button type="button" id="scatter-profile-csv">Profile CSV</button></div>
   </article>
  </div>
  <p id="scatter-note" class="help"></p>
@@ -116,6 +118,22 @@ pre{font:13px/1.5 Consolas,monospace;margin:6px 0;white-space:pre;color:var(--in
   <button type="button" id="scatter-peaks-csv">Peaks CSV</button>
  </details>
 </section>
+<section id="imported" hidden aria-labelledby="imported-heading">
+ <header><h2 id="imported-heading">Imported results</h2>
+  <select id="imported-choice" aria-label="Imported dataset"></select></header>
+ <p class="help">Imported data keep their own axes and metadata. Profiles of the same regime are also drawn over the model profile above. A detector image samples an Ewald surface; compare it with a central slice only after constructing equivalent sampling.</p>
+ <div class="scatter-grid">
+  <article class="card">
+   <div class="card-head"><h3 id="imported-plot-heading">Dataset</h3></div>
+   <canvas id="imported-plot" role="img" aria-label="Imported dataset plot"></canvas>
+   <div class="card-foot"><span id="imported-readout" class="subtle"></span></div>
+  </article>
+  <article class="card">
+   <div class="card-head"><h3>Provenance</h3></div>
+   <div class="scatter-table-wrap" style="padding:0 14px"><table class="meta-table"><tbody id="imported-meta"></tbody></table></div>
+  </article>
+ </div>
+</section>
 </main>
 <script type="application/json" id="scene">__SCENE_JSON__</script>
 <script>
@@ -133,6 +151,7 @@ const rotate = (R,v) => R.map(row=>dot(row,v));
 const zero = [0,0,0];
 const directionColor = "#902b61";
 const axisColors = ["#98401d","#14744b","#216597"];
+const overlayColors = ["#c0392b","#7d3c98","#b9770e","#2e4053","#1f618d"];
 const cam = {yaw:-0.98,pitch:0.46,zoom:1};
 let selected = 0, site = -1, alignment = 0, scheduled = false, hitFaces = [];
 el("title").textContent = document.title = scene.title;
@@ -456,6 +475,36 @@ function setupScattering(data) {
    if(i===0)ctx.moveTo(px(q[i]),yy);else ctx.lineTo(px(q[i]),yy);
   }
   ctx.strokeStyle="#12685f";ctx.lineWidth=2;ctx.stroke();
+  // Imported profiles of the same regime, each scaled to its own maximum in this q window.
+  const legend=el("scatter-overlay-legend");legend.replaceChildren();
+  const shown=(scene.imported||[]).filter(d=>d.kind==="profile"&&d.regime===mode);
+  if(shown.length)legendKey(legend,"Model","#12685f");
+  el("scatter-overlay-scale").hidden=!shown.length;
+  const fit=el("scatter-overlay-fit").checked;
+  shown.forEach((d,k)=>{
+   const color=overlayColors[k%overlayColors.length];
+   const pts=d.q.map((v,i)=>[v,d.intensity[i]]).filter(([v,y])=>v!==null&&y!==null&&v>=low&&v<=high);
+   const top=pts.reduce((m,p)=>Math.max(m,p[1]),0);
+   // Log-space fit: log s = mean(log model - log overlay) over q where the model
+   // exceeds 1e-3 of its maximum, so empty regions between peaks do not dominate.
+   let scaleTo=top>0?1/top:0;
+   if(fit&&pts.length>1&&profileMax>0){
+    let sum=0,count=0,j=0;
+    const first=pts[0][0],last=pts[pts.length-1][0];
+    for(let i=0;i<q.length;i++){
+     if(q[i]<first||q[i]>last)continue;           // no extrapolation
+     while(pts[j+1][0]<q[i])j++;                   // pts[j][0] <= q[i] <= pts[j+1][0]
+     const [q0,y0]=pts[j],[q1,y1]=pts[j+1];
+     const o=q1>q0?y0+(y1-y0)*(q[i]-q0)/(q1-q0):y0;
+     if(o>0&&intensity[i]>1e-3*profileMax){sum+=Math.log(intensity[i]/o);count++;}
+    }
+    if(count)scaleTo=Math.exp(sum/count)/profileMax;
+   }
+   ctx.beginPath();let pen=false;
+   for(const [v,y] of pts){const yy=py(y*scaleTo);if(!pen){ctx.moveTo(px(v),yy);pen=true;}else ctx.lineTo(px(v),yy);}
+   ctx.setLineDash([6,4]);ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.stroke();ctx.setLineDash([]);
+   legendKey(legend,d.name+" · "+d.backend,color);
+  });
  }
  function drawCharts(){drawMap();drawProfile();}
  function twoTheta(q){
@@ -509,6 +558,7 @@ function setupScattering(data) {
   button.onclick=()=>selectMode(key);
  }
  logBox.onchange=()=>{refreshRaster();drawCharts();};
+ el("scatter-overlay-fit").onchange=drawProfile;
  map.onpointermove=event=>{
   const b=map.getBoundingClientRect(), {x,y,size,n}=mapBounds;
   const ix=Math.floor((event.clientX-b.left-x)/size*n);
@@ -544,6 +594,68 @@ function setupScattering(data) {
  new ResizeObserver(drawCharts).observe(profile);
 }
 setupScattering(scene.scattering);
+</script>
+<script>
+function setupImported(list){
+ if(!list||!list.length)return;
+ const choice=el("imported-choice"),canvas=el("imported-plot"),readout=el("imported-readout");
+ const ramp=[[27,34,69],[65,60,130],[34,125,151],[40,174,135],[147,210,91],[252,223,86]];
+ const paint=t=>{const u=Math.min(1,Math.max(0,t))*(ramp.length-1),i=Math.min(Math.floor(u),ramp.length-2),f=u-i;return ramp[i].map((v,k)=>Math.round(v*(1-f)+ramp[i+1][k]*f));};
+ const fmt=v=>v===null||v===undefined||v===""?"—":typeof v==="number"?Number(v.toPrecision(5)).toString():String(v);
+ const logScale=v=>1+Math.log10(Math.max(v,1e-5))/5;
+ let current=0,box=null;
+ list.forEach((d,i)=>{const o=document.createElement("option");o.value=i;o.textContent=d.name+" · "+d.backend+" · "+d.regime;choice.append(o);});
+ function metadata(d){
+  const body=el("imported-meta");body.replaceChildren();
+  const rows=[["Source file",d.source],["Backend",d.backend],["Version",d.backend_version],["Regime",d.regime],["Data",d.kind],
+   ["Normalization",d.normalization],["Intensity unit",d.intensity_unit],["Wavelength (nm)",d.wavelengthNm],
+   ["Warnings",(d.warnings||[]).join(" ")||"none"]];
+  for(const [k,v] of rows){const r=body.insertRow(),h=document.createElement("th");h.textContent=k;r.append(h);r.insertCell().textContent=fmt(v);}
+ }
+ function surface(){
+  const w=canvas.clientWidth,h=canvas.clientHeight,ratio=Math.min(devicePixelRatio||1,2);
+  canvas.width=Math.round(w*ratio);canvas.height=Math.round(h*ratio);
+  const ctx=canvas.getContext("2d");ctx.setTransform(ratio,0,0,ratio,0,0);ctx.font="12px Segoe UI, sans-serif";ctx.fillStyle="#435c61";
+  return {ctx,w,h};
+ }
+ function profile(d){
+  const {ctx,w,h}=surface(),x=57,y=20,width=w-x-24,height=h-y-45;
+  const pts=d.q.map((v,i)=>[v,d.intensity[i]]).filter(p=>p[0]!==null&&p[1]!==null);
+  const low=Math.min(...pts.map(p=>p[0])),high=Math.max(...pts.map(p=>p[0])),top=Math.max(...pts.map(p=>p[1]));
+  const px=v=>x+(v-low)/((high-low)||1)*width,py=v=>y+(1-logScale(top>0?v/top:0))*height;
+  for(const t of [1e-5,1e-4,1e-3,1e-2,.1,1]){const yy=py(t*top);line(ctx,[x,yy],[x+width,yy],"#dce8e5");ctx.textAlign="right";ctx.fillText(t===1e-5?"≤1e−5":fmt(t),x-7,yy+4);}
+  for(let i=0;i<=4;i++){const t=low+(high-low)*i/4;ctx.textAlign="center";ctx.fillText(fmt(t),px(t),y+height+17);}
+  ctx.textAlign="center";ctx.fillText("|q| (nm⁻¹)",x+width/2,h-5);
+  ctx.beginPath();pts.forEach(([v,yv],i)=>i?ctx.lineTo(px(v),py(yv)):ctx.moveTo(px(v),py(yv)));
+  ctx.strokeStyle=overlayColors[current%overlayColors.length];ctx.lineWidth=1.8;ctx.stroke();
+  box=null;readout.textContent=pts.length+" points · I / Imax on a log scale";
+ }
+ function image(d){
+  const {ctx,w,h}=surface(),ny=d.image.length,nx=d.image[0].length;
+  let top=0;for(const r of d.image)for(const v of r)if(v!==null&&v>top)top=v;
+  const off=document.createElement("canvas");off.width=nx;off.height=ny;
+  const octx=off.getContext("2d"),px=octx.createImageData(nx,ny);
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+   const v=d.image[ny-1-j][i],c=v===null?[230,230,230]:paint(logScale(top>0?v/top:0)),k=4*(j*nx+i);
+   px.data.set(c,k);px.data[k+3]=255;
+  }
+  octx.putImageData(px,0,0);
+  const s=Math.min((w-40)/nx,(h-50)/ny),x=(w-nx*s)/2,y=(h-ny*s)/2-8;
+  ctx.imageSmoothingEnabled=false;ctx.drawImage(off,x,y,nx*s,ny*s);
+  ctx.textAlign="center";ctx.fillText("detector pixel x"+(d.pixelStep>1?" (every "+d.pixelStep+")":""),x+nx*s/2,y+ny*s+18);
+  box={x,y,s,nx,ny};readout.textContent="Point at the image to read q (nm⁻¹, laboratory frame).";
+ }
+ function draw(){const d=list[current];metadata(d);el("imported-plot-heading").textContent=d.name;(d.kind==="image"?image:profile)(d);}
+ canvas.onpointermove=e=>{
+  const d=list[current];if(!box||d.kind!=="image")return;
+  const b=canvas.getBoundingClientRect(),i=Math.floor((e.clientX-b.left-box.x)/box.s),j=box.ny-1-Math.floor((e.clientY-b.top-box.y)/box.s);
+  if(i<0||j<0||i>=box.nx||j>=box.ny)return;
+  readout.textContent="pixel ("+i*d.pixelStep+", "+j*d.pixelStep+") · q = ("+[d.qx,d.qy,d.qz].map(g=>fmt(g[j][i])).join(", ")+") · I = "+fmt(d.image[j][i]);
+ };
+ choice.onchange=()=>{current=Number(choice.value);draw();};
+ el("imported").hidden=false;draw();new ResizeObserver(draw).observe(canvas);
+}
+setupImported(scene.imported);
 </script>
 </body>
 </html>

@@ -136,15 +136,27 @@ print(result["saxs"]["maxima"])    # local maxima of the slice-averaged curve
 write_viewer(config, "zno.html", scattering=True)
 ```
 
+## Connect external software
+
+The optional `integrations` package exports the model as CIF, particle-center, orientation and run-metadata files. It imports external results, with their units and provenance, for overlay in the viewer. It also bridges to Dans_Diffraction, CrystalMaker / SingleCrystal, BornAgain, AES-Debye, DebUsSy, ScatterSim and DISCUS, and includes a NumPy Debye-equation reference for finite atomistic assemblies.
+
+```sh
+python -m integrations.cli export examples/silicon_fcc.json exchange/si
+python -m integrations.cli roundtrip examples/hexagonal_zno.json exchange/zno
+python visualize_superlattice.py examples/silicon_fcc.json --overlay exchange/si/scattering_waxs.csv
+```
+
+[INTEGRATIONS.md](INTEGRATIONS.md) covers the conventions, each tool's workflow, and which adapter steps still need validation against an installed copy of that software.
+
 ## Verify the installation
 
 Run the numerical regression tests from the repository root.
 
 ```sh
-python -m unittest -v test_scattering
+python -m unittest -v test_scattering test_integrations
 ```
 
-The three tests check the sphere form factor and FCC centering, diamond-silicon reflection conditions and powder invariance, and hexagonal ZnO spacings.
+The three scattering tests check the sphere form factor and FCC centering, diamond-silicon reflection conditions and powder invariance, and hexagonal ZnO spacings. The integration tests check exchange round trips, reflection comparisons, importer units, BornAgain geometry, atomistic assemblies, the Debye equation and symmetry classification. Tests that need Dans_Diffraction or BornAgain are skipped when those packages are absent.
 
 ## Scientific references
 

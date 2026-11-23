@@ -1,0 +1,17 @@
+{
+  "geometry": "gisaxs",
+  "wavelength_nm": 0.1,
+  "incidence_deg": 0.2,
+  "detector": {
+    "pixels": [161, 121],
+    "pixel_size_mm": [0.172, 0.172],
+    "distance_mm": 3000,
+    "beam_center_px": [80, 10]
+  },
+  "media": {
+    "ambient": {"delta": 0, "beta": 0},
+    "substrate": {"delta": 3.2e-6, "beta": 5.0e-8}
+  },
+  "born_baseline": true,
+  "particle_gap_nm": 0
+}
