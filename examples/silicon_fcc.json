@@ -1,0 +1,56 @@
+{
+  "title": "Silicon cuboctahedra on an FCC superlattice",
+  "description": "Yu et al. observed three silicon azimuths in the (111) superlattice view with a 16.6 nm FCC cell. The colors identify their orientation variants. The repeating site assignments and particle size are illustrative. Nano Letters (2016), doi:10.1021/acs.nanolett.6b04006.",
+  "atomic": {
+    "cell": [0.5431, 0.5431, 0.5431, 90, 90, 90],
+    "basis": [
+      {"element": "Si", "frac": [0, 0, 0]},
+      {"element": "Si", "frac": [0, 0.5, 0.5]},
+      {"element": "Si", "frac": [0.5, 0, 0.5]},
+      {"element": "Si", "frac": [0.5, 0.5, 0]},
+      {"element": "Si", "frac": [0.25, 0.25, 0.25]},
+      {"element": "Si", "frac": [0.25, 0.75, 0.75]},
+      {"element": "Si", "frac": [0.75, 0.25, 0.75]},
+      {"element": "Si", "frac": [0.75, 0.75, 0.25]}
+    ]
+  },
+  "superlattice": {
+    "cell": [16.6, 16.6, 16.6, 90, 90, 90],
+    "basis": [[0, 0, 0], [0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]],
+    "repeat": [2, 2, 2]
+  },
+  "shape": {"type": "cuboctahedron", "radius_nm": 4.8},
+  "variants": [
+    {
+      "name": "O1 · reference",
+      "color": "#29877d",
+      "align": [
+        {"nc": {"direction": [1, 1, 0]}, "sl": {"direction": [1, 1, 1]}},
+        {"nc": {"direction": [-1, 1, 0]}, "sl": {"direction": [-2, 1, 1]}}
+      ]
+    },
+    {
+      "name": "O2 · 120°",
+      "color": "#c17330",
+      "align": [
+        {"nc": {"direction": [1, 1, 0]}, "sl": {"direction": [1, 1, 1]}},
+        {"nc": {"direction": [-1, 1, 0]}, "sl": {"direction": [1, -2, 1]}}
+      ]
+    },
+    {
+      "name": "O3 · 240°",
+      "color": "#7666aa",
+      "align": [
+        {"nc": {"direction": [1, 1, 0]}, "sl": {"direction": [1, 1, 1]}},
+        {"nc": {"direction": [-1, 1, 0]}, "sl": {"direction": [1, 1, -2]}}
+      ]
+    }
+  ],
+  "variant_pattern": [0, 1, 2],
+  "scattering": {
+    "wavelength_nm": 0.15406,
+    "view": {"normal": {"direction": [1, 1, 1]}, "horizontal": {"direction": [-2, 1, 1]}},
+    "saxs": {"q_max_nm_inv": 1.65},
+    "waxs": {"q_max_nm_inv": 55, "sigma_nm_inv": 0.55}
+  }
+}

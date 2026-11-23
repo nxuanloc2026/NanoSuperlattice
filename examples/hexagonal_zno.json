@@ -1,0 +1,44 @@
+{
+  "title": "Wurtzite ZnO on a hexagonal superlattice",
+  "description": "A two-site hexagonal array illustrates two alignments of ZnO prisms. One places the basal (001) plane parallel to the assembly layers, the other the inclined (101) plane. The ZnO structure uses the 295 K data of Kisi and Elcombe, doi:10.1107/S0108270189004269. The assembly geometry and variant assignments are illustrative.",
+  "atomic": {
+    "cell": [0.32501, 0.32501, 0.52071, 90, 90, 120],
+    "basis": [
+      {"element": "Zn", "frac": [0.3333333333333333, 0.6666666666666666, 0]},
+      {"element": "Zn", "frac": [0.6666666666666666, 0.3333333333333333, 0.5]},
+      {"element": "O", "frac": [0.3333333333333333, 0.6666666666666666, 0.3817]},
+      {"element": "O", "frac": [0.6666666666666666, 0.3333333333333333, 0.8817]}
+    ]
+  },
+  "superlattice": {
+    "cell": [12, 12, 19.6, 90, 90, 120],
+    "basis": [[0, 0, 0], [0.6666666666666666, 0.3333333333333333, 0.5]],
+    "repeat": [3, 3, 2]
+  },
+  "shape": {"type": "hexagonal_prism", "radius_nm": 4.5},
+  "variants": [
+    {
+      "name": "Basal plane",
+      "color": "#357ca9",
+      "align": [
+        {"nc": {"plane": [0, 0, 1]}, "sl": {"plane": [0, 0, 1]}},
+        {"nc": {"direction": [1, 0, 0]}, "sl": {"direction": [1, 0, 0]}}
+      ]
+    },
+    {
+      "name": "Inclined plane",
+      "color": "#ba6947",
+      "align": [
+        {"nc": {"plane": [1, 0, 1]}, "sl": {"plane": [0, 0, 1]}},
+        {"nc": {"direction": [0, 1, 0]}, "sl": {"direction": [1, 0, 0]}}
+      ]
+    }
+  ],
+  "variant_pattern": [0, 1],
+  "scattering": {
+    "wavelength_nm": 0.15406,
+    "view": {"normal": {"plane": [0, 0, 1]}, "horizontal": {"direction": [1, 0, 0]}},
+    "saxs": {"q_max_nm_inv": 2},
+    "waxs": {"q_max_nm_inv": 55, "sigma_nm_inv": 0.55}
+  }
+}

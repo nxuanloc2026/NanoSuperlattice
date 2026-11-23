@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nanocrystal superlattice</title>
+<style>
+:root{color-scheme:light;--ink:#143c40;--sub:#4b6468;--stroke:#cfdddb;--teal:#12685f;--paper:#f7f8f5;--pink:#902b61}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.45 "Segoe UI",Arial,sans-serif}
+main{max-width:1640px;margin:0 auto;padding:clamp(14px,3vw,46px)}
+header{margin-bottom:18px}h1,h2,h3,p{margin:0}h1{font-size:clamp(26px,3.2vw,46px);line-height:1.12;letter-spacing:-.035em;font-weight:650}
+#description{max-width:94ch;color:var(--sub);margin-top:.5em}
+.toolbar,.controls,.legend,.toggles,.card-head,.key,.alignment-choices{display:flex;align-items:center;flex-wrap:wrap;gap:.65em 1em}
+.toolbar{justify-content:space-between;margin-bottom:14px;min-height:40px}
+.controls{gap:.35em}.toggles{gap:.7em 1.2em}
+button,select{font:inherit;color:var(--ink);background:white;border:1px solid #afc2bf;border-radius:5px;min-height:32px;padding:.24em .65em}
+button{cursor:pointer}button:hover,select:hover{border-color:var(--teal);background:#f0f7f5}
+input{accent-color:var(--teal)}button:focus-visible,select:focus-visible,input:focus-visible,canvas:focus-visible,summary:focus-visible{outline:3px solid #2987ac;outline-offset:2px}
+label{cursor:pointer}.toggles label{display:inline-flex;gap:5px;align-items:center}.cards{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px}
+.card,.orientation{background:#fff;border:1px solid var(--stroke);border-radius:9px;overflow:hidden}
+.card{display:flex;flex-direction:column}.card-head{min-height:62px;justify-content:space-between;padding:11px 18px;border-bottom:1px solid var(--stroke)}
+h2{font-size:20px;letter-spacing:-.025em}.subtle{color:var(--sub);font-size:13px}
+.card-head select{max-width:60%;font-size:13px}
+canvas{width:100%;height:clamp(275px,49vh,605px);display:block;touch-action:none;cursor:grab;background:radial-gradient(ellipse at 50% 43%,#fff,#f1f6f3)}
+canvas:active{cursor:grabbing}.card-foot{padding:11px 16px;border-top:1px solid var(--stroke);background:#fff;min-height:46px}
+.legend{gap:5px 15px;font-size:13px;color:var(--sub)}.key{gap:5px}i.swatch{width:11px;height:11px;display:inline-block;border-radius:50%;border:1px solid #223e4638}.orientation{margin-top:16px;padding:16px 18px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px 24px}
+h3{font-size:16px}.alignment-choices{margin-top:6px;gap:5px 14px}.alignment-choices label{display:inline-flex;align-items:center;gap:5px}
+.matrix{width:max-content;max-width:100%}summary{cursor:pointer;color:var(--teal);font-size:14px}
+pre{font:13px/1.5 Consolas,monospace;margin:6px 0;white-space:pre;color:var(--ink)}
+.help{font-size:13px;color:var(--sub);margin:10px 1px}.help kbd{font:inherit;color:var(--ink)}
+#scattering{margin-top:32px}#scattering header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+#scattering h2{font-size:26px}#scattering button[aria-pressed="true"]{background:var(--ink);color:white;border-color:var(--ink)}
+.scatter-tools,.scatter-switch{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.scatter-tools{gap:18px}
+.scatter-grid{display:grid;grid-template-columns:1fr 1.15fr;gap:16px;margin-top:12px}
+.scatter-grid article{min-width:0}.scatter-grid .card-head{min-height:48px}
+.scatter-grid canvas{height:340px;cursor:default;touch-action:auto;background:white}
+.scatter-grid .card-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.scatter-peaks{background:white;border:1px solid var(--stroke);border-radius:7px;padding:12px 16px;margin-top:12px}
+.scatter-peaks summary{font-weight:600}.scatter-table-wrap{margin:10px 0;max-height:260px;overflow:auto}
+.scatter-peaks table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13px}
+.scatter-peaks th,.scatter-peaks td{padding:5px 9px;border-bottom:1px solid #e2ebe8;text-align:right;white-space:nowrap}
+.scatter-peaks th{position:sticky;top:0;background:#f3f7f6}.scatter-peaks td:first-child,.scatter-peaks th:first-child{text-align:left}
+@media(max-width:760px){.scatter-grid{grid-template-columns:1fr}.scatter-grid canvas{height:295px}}
+@media(max-width:760px){.cards{grid-template-columns:1fr}.orientation{grid-template-columns:1fr}.card-head{min-height:47px}canvas{height:clamp(270px,46vh,440px)}main{padding:13px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<main>
+<header><h1 id="title"></h1><p id="description"></p></header>
+<div class="toolbar">
+ <div class="toggles">
+  <label><input id="cellToggle" type="checkbox" checked>Superlattice cell</label>
+  <label><input id="axesToggle" type="checkbox">Particle axes</label>
+ </div>
+ <div class="controls"><button id="zoomOut" aria-label="Zoom both views out">−</button><button id="zoomIn" aria-label="Zoom both views in">+</button><button id="reset">Reset view</button></div>
+</div>
+<div class="cards">
+ <section class="card" aria-labelledby="slHeading">
+  <div class="card-head"><h2 id="slHeading">Superlattice</h2><span id="siteCount" class="subtle"></span></div>
+  <canvas id="sl" tabindex="0" aria-label="Superlattice, keyboard arrows rotate, plus and minus zoom"></canvas>
+  <div class="card-foot"><div class="legend" id="variantsLegend"></div></div>
+ </section>
+ <section class="card" aria-labelledby="ncHeading">
+  <div class="card-head"><h2 id="ncHeading">Atomic unit cell</h2><select id="variant" aria-label="Nanocrystal orientation variant"></select></div>
+  <canvas id="nc" tabindex="0" aria-label="Atomic cell in the selected orientation, keyboard arrows rotate, plus and minus zoom"></canvas>
+  <div class="card-foot"><div class="legend" id="elementsLegend"></div></div>
+ </section>
+</div>
+<section class="orientation" aria-label="Selected orientation relationship">
+ <div><h3>Orientation relationship</h3><div id="alignments" class="alignment-choices"></div></div>
+ <details class="matrix"><summary>NC → SL rotation matrix</summary><pre id="matrix"></pre><p class="subtle">Cartesian column vectors · r<sub>SL</sub> = R r<sub>NC</sub></p></details>
+</section>
+<p class="help">Drag either view or use the arrow keys to rotate both. Scroll to zoom. Click a particle to inspect its atomic orientation. Each panel uses its own length scale. Magenta arrows show the selected direction or plane normal.</p>
+<section id="scattering" hidden aria-labelledby="scatter-heading">
+ <header>
+  <h2 id="scatter-heading">Simulated X-ray scattering</h2>
+  <div class="scatter-tools">
+   <div class="scatter-switch" role="group" aria-label="Scattering regime">
+    <button type="button" id="scatter-saxs" aria-pressed="true">Small angle · SAXS</button>
+    <button type="button" id="scatter-waxs" aria-pressed="false">Wide angle · WAXS</button>
+   </div>
+   <label><input type="checkbox" id="scatter-log" checked> Log intensity</label>
+  </div>
+ </header>
+ <p id="scatter-plane" class="subtle"></p>
+ <div class="scatter-grid">
+  <article class="card">
+   <div class="card-head"><h3>Central reciprocal-space slice</h3></div>
+   <canvas id="scatter-map" role="img" aria-label="Intensity map in the fixed reciprocal plane. Raw values available as CSV."></canvas>
+   <div class="card-foot"><span id="scatter-map-readout" class="subtle"></span><button type="button" id="scatter-map-csv">Map CSV</button></div>
+  </article>
+  <article class="card">
+   <div class="card-head"><h3 id="scatter-profile-heading">Intensity profile</h3></div>
+   <canvas id="scatter-profile" role="img" aria-label="Relative intensity versus scattering vector magnitude. Raw values available as CSV."></canvas>
+   <div class="card-foot"><span class="subtle">Each plot uses its own maximum intensity.</span><button type="button" id="scatter-profile-csv">Profile CSV</button></div>
+  </article>
+ </div>
+ <p id="scatter-note" class="help"></p>
+ <details id="scatter-maxima" class="scatter-peaks" hidden>
+  <summary>Local maxima of the azimuthal mean</summary>
+  <p class="help">These maxima include particle shape and interparticle interference. Forward scattering is excluded. The apparent spacing is 2π/q.</p>
+  <div class="scatter-table-wrap"><table>
+   <thead><tr><th>q (nm⁻¹)</th><th>Apparent d (nm)</th><th>I / profile max</th></tr></thead>
+   <tbody id="scatter-maxima-rows"></tbody>
+  </table></div>
+  <button type="button" id="scatter-maxima-csv">Maxima CSV</button>
+ </details>
+ <details id="scatter-peaks" class="scatter-peaks" hidden>
+  <summary>Indexed powder reflections</summary>
+  <div class="scatter-table-wrap"><table>
+   <thead><tr><th>Representative hkl</th><th>q (nm⁻¹)</th><th>d (nm)</th><th>2θ (°)</th><th>Multiplicity</th><th>Integrated weight (a.u.)</th></tr></thead>
+   <tbody id="scatter-peak-rows"></tbody>
+  </table></div>
+  <button type="button" id="scatter-peaks-csv">Peaks CSV</button>
+ </details>
+</section>
+</main>
+<script type="application/json" id="scene">__SCENE_JSON__</script>
+<script>
+"use strict";
+const scene = JSON.parse(document.getElementById("scene").textContent);
+const el = id => document.getElementById(id);
+const add = (a,b) => a.map((x,i)=>x+b[i]);
+const sub = (a,b) => a.map((x,i)=>x-b[i]);
+const mul = (a,s) => a.map(x=>x*s);
+const dot = (a,b) => a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const norm = a => Math.hypot(...a);
+const unit = a => mul(a,1/(norm(a)||1));
+const cross = (a,b) => [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const rotate = (R,v) => R.map(row=>dot(row,v));
+const zero = [0,0,0];
+const directionColor = "#902b61";
+const axisColors = ["#98401d","#14744b","#216597"];
+const cam = {yaw:-0.98,pitch:0.46,zoom:1};
+let selected = 0, site = -1, alignment = 0, scheduled = false, hitFaces = [];
+el("title").textContent = document.title = scene.title;
+el("description").textContent = scene.description || "";
+el("siteCount").textContent = scene.centers.length.toLocaleString()+" particles";
+function legendKey(container,label,color){
+ const key=document.createElement("span"), swatch=document.createElement("i");
+ key.className="key";swatch.className="swatch";swatch.style.background=color;
+ key.append(swatch,document.createTextNode(label));container.append(key);
+}
+const parseColor = document.createElement("canvas").getContext("2d");
+function rgb(css){
+ parseColor.fillStyle="#67848b";parseColor.fillStyle=css;
+ parseColor.fillRect(0,0,1,1);
+ return Array.from(parseColor.getImageData(0,0,1,1).data).slice(0,3);
+}
+function shade(c,n){return "rgb("+c.map(v=>Math.max(0,Math.min(255,Math.round(v*n)))).join(",")+")";}
+function cellCorners(cell){
+ return Array.from({length:8},(_,mask)=>cell.reduce((point,axis,i)=>(mask & 1<<i)?add(point,axis):point,zero));
+}
+const edges=[];
+for(let j=0;j<8;j++) for(let k=0;k<3;k++) if(!(j & 1<<k)) edges.push([j,j|1<<k]);
+function bounds(points){
+ const lo=[Infinity,Infinity,Infinity],hi=[-Infinity,-Infinity,-Infinity];
+ for(const p of points)for(let k=0;k<3;k++){lo[k]=Math.min(lo[k],p[k]);hi[k]=Math.max(hi[k],p[k]);}
+ const center=mul(add(lo,hi),.5);
+ let radius=0;for(const p of points)radius=Math.max(radius,norm(sub(p,center)));
+ return {center,radius:radius||1};
+}
+// All rotated geometry lives in the same superlattice Cartesian frame.
+const templates=scene.variants.map((v,i)=>{
+ const option=document.createElement("option");option.value=i;option.textContent=v.name;el("variant").append(option);
+ legendKey(el("variantsLegend"),v.name,v.color);
+ const vertices=v.mesh.vertices.map(p=>rotate(v.rotation,p));
+ const faces=v.mesh.faces.map(indices=>{
+  const p=indices.map(j=>vertices[j]),center=mul(p.reduce(add,zero),1/p.length);
+  // Newell's area vector remains stable when a polygon starts with collinear points.
+  const n=p.reduce((acc,a,j)=>add(acc,cross(a,p[(j+1)%p.length])),zero);
+  return {indices,center,normal:unit(n)};
+ });
+ const ncAxes=scene.ncCell.map(a=>rotate(v.rotation,a));
+ const corners=cellCorners(ncAxes);
+ const atoms=v.atoms.map(a=>({...a,xyz:rotate(v.rotation,a.xyz),rgb:rgb(a.color)}));
+ return {vertices,faces,ncAxes,corners,atoms,
+  particleRadius:Math.max(...vertices.map(norm)),color:rgb(v.color),
+  atomicBounds:bounds(corners.concat(atoms.map(p=>p.xyz)))};
+});
+for(const [symbol,color] of Object.entries(scene.elementColors))legendKey(el("elementsLegend"),symbol,color);
+const slCorners=cellCorners(scene.slCell);
+// Bounding spheres around each site keep all vertices in view throughout an orbit.
+const siteBounds=bounds(slCorners.concat(scene.centers.map(s=>s.xyz)));
+let envelope=siteBounds.radius;
+for(const s of scene.centers)envelope=Math.max(envelope,norm(sub(s.xyz,siteBounds.center))+templates[s.variant].particleRadius);
+siteBounds.radius=envelope;
+function basis(){
+ const c=Math.cos(cam.yaw),s=Math.sin(cam.yaw),p=Math.sin(cam.pitch),q=Math.cos(cam.pitch);
+ return {x:[-s,c,0],y:[-p*c,-p*s,q],z:[q*c,q*s,p]};
+}
+function panel(id,box,b){
+ const cv=el(id),w=cv.clientWidth,h=cv.clientHeight,dpr=Math.min(window.devicePixelRatio||1,2);
+ const width=Math.round(w*dpr),height=Math.round(h*dpr);
+ if(cv.width!==width || cv.height!==height){cv.width=width;cv.height=height;}
+ const ctx=cv.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+ const scale=Math.min(w*.45,h*.405)*cam.zoom/box.radius;
+ function project(p){
+  const d=sub(p,box.center);
+  return [w/2+dot(b.x,d)*scale,h*.49-dot(b.y,d)*scale,dot(b.z,d)];
+ }
+ return {ctx,w,h,scale,project};
+}
+function line(ctx,a,b,color,width=1,dash=[]){
+ ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);
+ ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();ctx.setLineDash([]);
+}
+function arrow(view,start,end,label,color,width=2){
+ const a=view.project(start),b=view.project(end),ctx=view.ctx,dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy);
+ if(l>5){
+  const ux=dx/l,uy=dy/l,h=Math.min(8,l*.30);
+  line(ctx,a,b,"#ffffffc9",width+2);line(ctx,a,b,color,width);
+  ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(b[0],b[1]);ctx.lineTo(b[0]-h*ux+h*.42*uy,b[1]-h*uy-h*.42*ux);
+  ctx.lineTo(b[0]-h*ux-h*.42*uy,b[1]-h*uy+h*.42*ux);ctx.fill();
+ }else{
+  ctx.beginPath();ctx.arc(b[0],b[1],3,0,2*Math.PI);ctx.fillStyle=color;ctx.fill();
+ }
+ if(label){
+  const x=Math.max(13,Math.min(view.w-16,b[0]+(dx<0?-8:8))),y=Math.max(13,Math.min(view.h-9,b[1]+(dy<0?-6:12)));
+  ctx.font="600 12px Segoe UI, sans-serif";ctx.textAlign="center";ctx.lineWidth=3;ctx.strokeStyle="#fffffff2";ctx.strokeText(label,x,y);ctx.fillStyle=color;ctx.fillText(label,x,y);
+ }
+}
+function referenceCell(view,corners,color){
+ for(const [i,j] of edges)line(view.ctx,view.project(corners[i]),view.project(corners[j]),color,1.25,[5,3]);
+}
+function scaleBar(view){
+ const target=75/view.scale,step=10**Math.floor(Math.log10(target));
+ const k=target/step,dist=(k>=5?5:k>=2?2:1)*step;
+ const text=Number(dist.toPrecision(3)).toString()+" nm",ctx=view.ctx;
+ const x=16,y=view.h-15,len=dist*view.scale;
+ ctx.fillStyle="#ffffffdf";ctx.fillRect(x-4,y-23,Math.max(len+8,text.length*7+6),27);
+ line(ctx,[x,y],[x+len,y],"#426063",1.4);
+ line(ctx,[x,y-3],[x,y+1],"#426063");line(ctx,[x+len,y-3],[x+len,y+1],"#426063");
+ ctx.fillStyle="#405e60";ctx.font="11px Segoe UI, sans-serif";ctx.textAlign="left";ctx.fillText(text,x,y-6);
+}
+function slPanel(b){
+ const view=panel("sl",siteBounds,b),ctx=view.ctx,faces=[];
+ const lamp=unit(add(b.z,add(mul(b.x,-.48),mul(b.y,.67))));
+ for(let i=0;i<scene.centers.length;i++){
+  const s=scene.centers[i],t=templates[s.variant],vs=t.vertices.map(p=>view.project(add(s.xyz,p)));
+  for(const f of t.faces){
+   let n=f.normal;if(dot(n,b.z)<0)n=mul(n,-1); // Open or inconsistently wound faces are visible from both sides.
+   const light=.62+.48*Math.max(0,dot(n,lamp));
+   faces.push({id:i,z:dot(b.z,add(s.xyz,f.center)),p:f.indices.map(j=>vs[j]),fill:shade(t.color,light),active:i===site});
+  }
+ }
+ faces.sort((a,b)=>a.z-b.z);ctx.lineJoin="round";
+ for(const f of faces){
+  ctx.beginPath();ctx.moveTo(f.p[0][0],f.p[0][1]);for(let j=1;j<f.p.length;j++)ctx.lineTo(f.p[j][0],f.p[j][1]);
+  ctx.closePath();ctx.fillStyle=f.fill;ctx.fill();ctx.strokeStyle=f.active?"#263c47":"#163f471f";ctx.lineWidth=f.active?1.55:.4;ctx.stroke();
+ }
+ hitFaces=faces;
+ if(el("cellToggle").checked){
+  referenceCell(view,slCorners,"#133c519c");
+  scene.slCell.forEach((v,i)=>arrow(view,zero,v,["aₛ","bₛ","cₛ"][i],axisColors[i],1.6));
+ }
+ const t=templates[selected],s=scene.centers[site];
+ if(s){
+  if(el("axesToggle").checked) t.ncAxes.forEach((v,i)=>arrow(view,s.xyz,add(s.xyz,mul(unit(v),1.35*t.particleRadius)),["aₙ","bₙ","cₙ"][i],axisColors[i]));
+  const a=scene.variants[selected].alignments[alignment];
+  if(a)arrow(view,s.xyz,add(s.xyz,mul(a.slVector,1.8*t.particleRadius)),"",directionColor,3);
+ }
+ scaleBar(view);
+}
+function ncPanel(b){
+ const t=templates[selected],v=scene.variants[selected],view=panel("nc",t.atomicBounds,b),ctx=view.ctx;
+ referenceCell(view,t.corners,"#315b687b");
+ const atoms=t.atoms.map(a=>({...a,pos:view.project(a.xyz)})).sort((a,b)=>a.pos[2]-b.pos[2]);
+ const sizes=t.ncAxes.map(norm),worldRadius=Math.min(...sizes)*.068;
+ const r=Math.max(1.2,Math.min(26,worldRadius*view.scale));
+ for(const a of atoms){
+  const [x,y]=a.pos,grad=ctx.createRadialGradient(x-r*.32,y-r*.35,r*.04,x,y,r);
+  grad.addColorStop(0,shade(a.rgb,1.3));grad.addColorStop(.6,shade(a.rgb,1));grad.addColorStop(1,shade(a.rgb,.68));
+  ctx.fillStyle=grad;ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fill();ctx.lineWidth=.7;ctx.strokeStyle="#213c414f";ctx.stroke();
+ }
+ t.ncAxes.forEach((axis,i)=>arrow(view,zero,axis,["aₙ","bₙ","cₙ"][i],axisColors[i],1.8));
+ const a=v.alignments[alignment],center=mul(t.corners[7],.5);
+ if(a)arrow(view,center,add(center,mul(rotate(v.rotation,a.ncVector),.80*t.atomicBounds.radius)),"",directionColor,3);
+ scaleBar(view);
+}
+function draw(){scheduled=false;const b=basis();slPanel(b);ncPanel(b);}
+function schedule(){if(!scheduled){scheduled=true;requestAnimationFrame(draw);}}
+function foremost(i){
+ const b=basis();let best=-1,z=-Infinity;
+ scene.centers.forEach((s,j)=>{if(s.variant===i && dot(b.z,s.xyz)>z){best=j;z=dot(b.z,s.xyz);}});return best;
+}
+function choose(i,index=foremost(i)){
+ selected=i;site=index;el("variant").value=i;
+ const v=scene.variants[i];
+ alignment=v.alignments.length?Math.max(0,Math.min(alignment,v.alignments.length-1)):-1;
+ el("matrix").textContent=v.rotation.map(row=>row.map(n=>(Math.abs(n)<.00005?0:n).toFixed(4).padStart(8," ")).join(" ")).join("\n");
+ const options=el("alignments");options.replaceChildren();
+ if(!v.alignments.length){
+  const p=document.createElement("span");p.textContent="The rotation matrix specifies this variant.";p.className="subtle";options.append(p);
+ }else{
+  const swatch=document.createElement("span");swatch.className="key";
+  const mark=document.createElement("i");mark.className="swatch";mark.style.background=directionColor;
+  swatch.append(mark,document.createTextNode("Show alignment"));options.append(swatch);
+  v.alignments.forEach((a,j)=>{
+   const label=document.createElement("label"),input=document.createElement("input");
+   input.type="radio";input.name="alignment";input.checked=j===alignment;
+   input.addEventListener("change",()=>{alignment=j;schedule();});
+   label.append(input,document.createTextNode(a.nc+" NC ∥ "+a.sl+" SL"));options.append(label);
+  });
+  const sight=document.createElement("button");
+  sight.type="button";sight.textContent="Look along alignment";
+  sight.title="View both panels from the positive end of the selected direction or plane normal.";
+  sight.onclick=()=>{
+   const [x,y,z]=v.alignments[alignment].slVector;
+   cam.yaw=Math.atan2(y,x);cam.pitch=Math.asin(Math.max(-1,Math.min(1,z)));
+   schedule();
+  };
+  options.append(sight);
+ }
+ schedule();
+}
+function zoom(f){cam.zoom=Math.min(10,Math.max(.18,cam.zoom*f));schedule();}
+function orbit(dx,dy){cam.yaw-=dx;cam.pitch=Math.max(-Math.PI*.495,Math.min(Math.PI*.495,cam.pitch+dy));schedule();}
+function reset(){Object.assign(cam,{yaw:-.98,pitch:.46,zoom:1});schedule();}
+function inside(pt,polygon){
+ let yes=false;for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){
+  const a=polygon[i],b=polygon[j];
+  if((a[1]>pt[1])!==(b[1]>pt[1]) && pt[0]<(b[0]-a[0])*(pt[1]-a[1])/(b[1]-a[1])+a[0])yes=!yes;
+ }return yes;
+}
+for(const id of ["sl","nc"]){
+ const cv=el(id);let drag=null;
+ cv.addEventListener("pointerdown",e=>{
+  if(e.button!==0 || drag)return;cv.setPointerCapture(e.pointerId);
+  drag={x:e.clientX,y:e.clientY,travel:0,pointer:e.pointerId};
+ });
+ cv.addEventListener("pointermove",e=>{
+  if(!drag||drag.pointer!==e.pointerId)return;
+  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.travel+=Math.hypot(dx,dy);
+  drag.x=e.clientX;drag.y=e.clientY;if(drag.travel>2)orbit(dx*.01,dy*.01);
+ });
+ cv.addEventListener("pointerup",e=>{
+  if(!drag||drag.pointer!==e.pointerId)return;
+  if(id==="sl" && drag.travel<5){
+   const bounds=cv.getBoundingClientRect(),p=[e.clientX-bounds.left,e.clientY-bounds.top];
+   for(let k=hitFaces.length-1;k>=0;k--)if(inside(p,hitFaces[k].p)){const j=hitFaces[k].id;choose(scene.centers[j].variant,j);break;}
+  }drag=null;
+ });
+ cv.addEventListener("lostpointercapture",()=>{drag=null;});
+ cv.addEventListener("wheel",e=>{e.preventDefault();zoom(Math.exp(-Math.sign(e.deltaY)*.095));},{passive:false});
+ cv.addEventListener("keydown",e=>{
+  const keys={ArrowLeft:()=>orbit(-.1,0),ArrowRight:()=>orbit(.1,0),ArrowUp:()=>orbit(0,.1),ArrowDown:()=>orbit(0,-.1),"+":()=>zoom(1.15),"=":()=>zoom(1.15),"-":()=>zoom(1/1.15),Home:reset};
+  if(Object.hasOwn(keys,e.key)){e.preventDefault();keys[e.key]();}
+ });
+}
+el("reset").onclick=reset;el("zoomIn").onclick=()=>zoom(1.2);el("zoomOut").onclick=()=>zoom(1/1.2);
+el("variant").onchange=e=>choose(Number(e.target.value));el("axesToggle").onchange=el("cellToggle").onchange=schedule;
+new ResizeObserver(schedule).observe(el("sl"));new ResizeObserver(schedule).observe(el("nc"));choose(0);
+</script>
+<script>
+function setupScattering(data) {
+ if (!data) return;
+ const section=el("scattering"), map=el("scatter-map"), profile=el("scatter-profile");
+ const logBox=el("scatter-log"), readout=el("scatter-map-readout");
+ const mapHint="Point at the map to inspect a sample.";
+ let mode=data.saxs?"saxs":"waxs";
+ let mapBounds, mapImage, mapMax, profileMax;
+ const simulation=()=>data[mode];
+ const maximum=values=>values.reduce((m,v)=>Math.max(m,v),0);
+ const digits=v=>Number(v.toPrecision(4)).toString();
+ const logFloor=1e-5;
+ const scale=v=>logBox.checked?1+Math.log10(Math.max(v,logFloor))/5:Math.max(0,v);
+ const ticks=log=>log?[1e-5,1e-4,1e-3,1e-2,.1,1]:[0,.25,.5,.75,1];
+ const ramp=[[27,34,69],[65,60,130],[34,125,151],[40,174,135],[147,210,91],[252,223,86]];
+ function color(t) {
+  const u=Math.min(1,Math.max(0,t))*(ramp.length-1);
+  const i=Math.min(Math.floor(u),ramp.length-2), f=u-i;
+  return ramp[i].map((v,k)=>Math.round(v*(1-f)+ramp[i+1][k]*f));
+ }
+ const colors=Array.from({length:256},(_,i)=>color(i/255));
+ function refreshRaster() {
+  const {axis,image,intensity}=simulation(), n=axis.length;
+  mapMax=image.reduce((m,row)=>Math.max(m,maximum(row)),0);
+  profileMax=maximum(intensity);
+  mapImage=document.createElement("canvas");
+  mapImage.width=mapImage.height=n;
+  const ctx=mapImage.getContext("2d"), pixels=ctx.createImageData(n,n);
+  for(let y=0;y<n;y++) for(let x=0;x<n;x++) {
+   const value=image[n-1-y][x];
+   const index=Math.round(255*scale(mapMax>0?value/mapMax:0));
+   pixels.data.set(colors[index],4*(y*n+x));
+   pixels.data[4*(y*n+x)+3]=255;
+  }
+  ctx.putImageData(pixels,0,0);
+ }
+ function chart(canvas) {
+  const w=canvas.clientWidth,h=canvas.clientHeight,ratio=Math.min(devicePixelRatio||1,2);
+  canvas.width=Math.round(w*ratio); canvas.height=Math.round(h*ratio);
+  const ctx=canvas.getContext("2d");
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+  ctx.font="12px Segoe UI, sans-serif"; ctx.fillStyle="#435c61";
+  return {ctx,w,h};
+ }
+ function axisLabel(ctx,text,x,y,vertical=false) {
+  ctx.save();ctx.translate(x,y);
+  if(vertical)ctx.rotate(-Math.PI/2);
+  ctx.textAlign="center";ctx.fillText(text,0,0);ctx.restore();
+ }
+ function drawMap() {
+  const {ctx,w,h}=chart(map), qs=simulation().axis;
+  const n=qs.length, size=Math.min(w-120,h-64);
+  const x=(w-size)/2-13,y=(h-size)/2-6;
+  mapBounds={x,y,size,n};
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(mapImage,x,y,size,size);
+  const indices=[0,Math.floor(n/2),n-1];
+  for(const i of indices){
+   const offset=size*(i+.5)/n;
+   line(ctx,[x+offset,y+size],[x+offset,y+size+4],"#567477");
+   line(ctx,[x-4,y+size-offset],[x,y+size-offset],"#567477");
+   ctx.textAlign="center";ctx.fillText(digits(qs[i]),x+offset,y+size+17);
+   ctx.textAlign="right";ctx.fillText(digits(qs[i]),x-7,y+size-offset+4);
+  }
+  axisLabel(ctx,"qₓ (nm⁻¹)",x+size/2,y+size+36);
+  axisLabel(ctx,"qᵧ (nm⁻¹)",x-38,y+size/2,true);
+  const gx=x+size+10;
+  for(let i=0;i<256;i++) {
+   ctx.fillStyle="rgb("+colors[i].join(",")+")";
+   ctx.fillRect(gx,y+(255-i)*size/256,9,size/256+1);
+  }
+  ctx.fillStyle="#435c61";ctx.textAlign="left";
+  for(const tick of ticks(logBox.checked)){
+   const label=tick===logFloor?"≤1e−5":digits(tick);
+   ctx.fillText(label,gx+12,y+(1-scale(tick))*(size-10)+8);
+  }
+  axisLabel(ctx,"I / Imax",gx+15,y-6);
+ }
+ function drawProfile(){
+  const {ctx,w,h}=chart(profile), x=57,y=20, width=w-x-24,height=h-y-45;
+  const {q,intensity}=simulation();
+  const low=q[0],high=q[q.length-1];
+  const px=v=>x+(v-low)/(high-low)*width;
+  const py=v=>y+(1-scale(v))*height;
+  for(const t of ticks(logBox.checked)){
+   const yy=py(t);line(ctx,[x,yy],[x+width,yy],"#dce8e5");
+   ctx.textAlign="right";ctx.fillText(t===logFloor?"≤1e−5":digits(t),x-7,yy+4);
+  }
+  for(let i=0;i<=4;i++){
+   const t=low+(high-low)*i/4, xx=px(t);
+   line(ctx,[xx,y+height],[xx,y+height+4],"#567477");
+   ctx.textAlign="center";ctx.fillText(digits(t),xx,y+height+17);
+  }
+  axisLabel(ctx,"|q| (nm⁻¹)",x+width/2,h-5);
+  axisLabel(ctx,"I / Imax",12,y+height/2,true);
+  line(ctx,[x,y],[x,y+height],"#567477");line(ctx,[x,y+height],[x+width,y+height],"#567477");
+  ctx.beginPath();
+  for(let i=0;i<q.length;i++){
+   const yy=py(profileMax>0?intensity[i]/profileMax:0);
+   if(i===0)ctx.moveTo(px(q[i]),yy);else ctx.lineTo(px(q[i]),yy);
+  }
+  ctx.strokeStyle="#12685f";ctx.lineWidth=2;ctx.stroke();
+ }
+ function drawCharts(){drawMap();drawProfile();}
+ function twoTheta(q){
+  const s=q*data.wavelengthNm/(4*Math.PI);
+  return s>=0 && s<=1 ? 360*Math.asin(s)/Math.PI : null;
+ }
+ function saveCsv(name,rows) {
+  const csv=rows.map(row=>row.join(",")).join("\r\n")+"\r\n";
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  const link=document.createElement("a");
+  link.href=url;link.download=mode+"_"+name+".csv";link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }
+ function renderPeaks() {
+  const peaks=simulation().peaks;
+  const maxima=simulation().maxima;
+  el("scatter-maxima").hidden=!maxima;
+  const maximaBody=el("scatter-maxima-rows");maximaBody.replaceChildren();
+  if(maxima){
+   for(const peak of maxima){
+    const row=maximaBody.insertRow();
+    for(const v of [peak.q,peak.d,profileMax?peak.intensity/profileMax:0]){
+     row.insertCell().textContent=digits(v);
+    }
+   }
+   if(!maxima.length){
+    const cell=maximaBody.insertRow().insertCell();
+    cell.colSpan=3;cell.textContent="No interior local maxima in this q range.";
+   }
+  }
+  el("scatter-peaks").hidden=!peaks;
+  const body=el("scatter-peak-rows");body.replaceChildren();
+  if(!peaks)return;
+  for(const peak of peaks){
+   const row=body.insertRow(), angle=twoTheta(peak.q);
+   const values=["("+peak.hkl.join(" ")+")",digits(peak.q),digits(peak.d),
+    angle===null?"—":digits(angle),peak.multiplicity,digits(peak.intensity)];
+   for(const value of values)row.insertCell().textContent=value;
+  }
+ }
+ function selectMode(value) {
+  mode=value;
+  for(const key of ["saxs","waxs"])el("scatter-"+key).setAttribute("aria-pressed",String(key===mode));
+  const sim=simulation();
+  el("scatter-profile-heading").textContent=sim.profileLabel;
+  el("scatter-note").textContent=sim.note;
+  readout.textContent=mapHint;refreshRaster();renderPeaks();drawCharts();
+ }
+ for(const key of ["saxs","waxs"]){
+  const button=el("scatter-"+key);button.hidden=!data[key];
+  button.onclick=()=>selectMode(key);
+ }
+ logBox.onchange=()=>{refreshRaster();drawCharts();};
+ map.onpointermove=event=>{
+  const b=map.getBoundingClientRect(), {x,y,size,n}=mapBounds;
+  const ix=Math.floor((event.clientX-b.left-x)/size*n);
+  const iy=n-1-Math.floor((event.clientY-b.top-y)/size*n);
+  if(ix<0||iy<0||ix>=n||iy>=n){readout.textContent=mapHint;return;}
+  const {axis,image}=simulation();
+  readout.textContent="("+digits(axis[ix])+", "+digits(axis[iy])+") nm⁻¹ · I = "+digits(image[iy][ix])+" a.u.";
+ };
+ map.onpointerleave=()=>{readout.textContent=mapHint;};
+ el("scatter-map-csv").onclick=()=>{
+  const {axis,image}=simulation(),rows=[["qx_nm^-1","qy_nm^-1","intensity_au"]];
+  axis.forEach((qy,y)=>axis.forEach((qx,x)=>rows.push([qx,qy,image[y][x]])));
+  saveCsv("map",rows);
+ };
+ el("scatter-profile-csv").onclick=()=>{
+  const {q,intensity}=simulation();
+  saveCsv("profile",[["q_nm^-1","intensity_au"],...q.map((v,i)=>[v,intensity[i]])]);
+ };
+ el("scatter-peaks-csv").onclick=()=>{
+  const peaks=simulation().peaks;
+  saveCsv("peaks",[["h","k","l","q_nm^-1","d_nm","2theta_deg","multiplicity","powder_weight_au"],
+   ...peaks.map(p=>[...p.hkl,p.q,p.d,twoTheta(p.q),p.multiplicity,p.intensity])]);
+ };
+ el("scatter-maxima-csv").onclick=()=>{
+  const maxima=simulation().maxima;
+  saveCsv("maxima",[["q_nm^-1","apparent_d_nm","intensity_au","intensity_over_profile_max"],
+   ...maxima.map(p=>[p.q,p.d,p.intensity,profileMax?p.intensity/profileMax:0])]);
+ };
+ el("scatter-plane").textContent=data.viewLabel+" · qₓ: "+data.xLabel+" · qᵧ: "+data.yLabel+
+  " · λ = "+digits(data.wavelengthNm)+" nm. The slice stays fixed as you rotate the structure.";
+ section.hidden=false;selectMode(mode);
+ new ResizeObserver(drawCharts).observe(map);
+ new ResizeObserver(drawCharts).observe(profile);
+}
+setupScattering(scene.scattering);
+</script>
+</body>
+</html>
