@@ -138,11 +138,11 @@ write_viewer(config, "zno.html", scattering=True)
 
 ## Connect external software
 
-The optional `integrations` package exports the model as CIF, particle-center, orientation and run-metadata files. It imports external results, with their units and provenance, for overlay in the viewer. It also bridges to Dans_Diffraction, CrystalMaker / SingleCrystal, BornAgain, AES-Debye, DebUsSy, ScatterSim and DISCUS, and includes a NumPy Debye-equation reference for finite atomistic assemblies.
+The optional single-file module `integrations.py` exports the model as CIF, particle-center, orientation and run-metadata files. It imports external results, with their units and provenance, for overlay in the viewer. It also bridges to Dans_Diffraction, CrystalMaker / SingleCrystal, BornAgain, AES-Debye, DebUsSy, ScatterSim and DISCUS, and includes a NumPy Debye-equation reference for finite atomistic assemblies.
 
 ```sh
-python -m integrations.cli export examples/silicon_fcc.json exchange/si
-python -m integrations.cli roundtrip examples/hexagonal_zno.json exchange/zno
+python integrations.py export examples/silicon_fcc.json exchange/si
+python integrations.py roundtrip examples/hexagonal_zno.json exchange/zno
 python visualize_superlattice.py examples/silicon_fcc.json --overlay exchange/si/scattering_waxs.csv
 ```
 

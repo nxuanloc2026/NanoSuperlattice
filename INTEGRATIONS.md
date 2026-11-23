@@ -1,8 +1,8 @@
 # Integrating external software
 
-The `integrations/` package connects NanoSuperlattice to external diffraction and scattering codes. One JSON configuration describes the material, particle geometry, site positions and orientations. Every adapter reads that same configuration. The core viewer does not import any of it, and NumPy is still the only required dependency.
+The single module `integrations.py` connects NanoSuperlattice to external diffraction and scattering codes. One JSON configuration describes the material, particle geometry, site positions and orientations. Every adapter reads that same configuration. The core viewer does not import any of it, and NumPy is still the only required dependency.
 
-Run commands from the repository root. `python -m integrations.cli --help` lists every subcommand.
+Run commands from the repository root. `python integrations.py --help` lists every subcommand; `python integrations.py probe` prints the installed BornAgain and Dans_Diffraction APIs. The file is divided into sections (conventions, exchange, symmetry, results, dans, bornagain, atomistic, debye, scattersim, formats, probe, cli); the text below names those sections where it used to name separate files.
 
 ## Status
 
@@ -44,8 +44,8 @@ The importer converts q from 1/Å (×10) and from cycles per length (×2π). It 
 ## Exchange files and round trip
 
 ```sh
-python -m integrations.cli export examples/silicon_fcc.json exchange/si
-python -m integrations.cli roundtrip examples/hexagonal_zno.json exchange/zno
+python integrations.py export examples/silicon_fcc.json exchange/si
+python integrations.py roundtrip examples/hexagonal_zno.json exchange/zno
 ```
 
 | File | Contents |
@@ -63,8 +63,8 @@ python -m integrations.cli roundtrip examples/hexagonal_zno.json exchange/zno
 
 ```sh
 python -m pip install Dans_Diffraction
-python -m integrations.cli dans examples/silicon_fcc.json --qmax 45 --json dans_si.json
-python -m integrations.cli dans examples/hexagonal_zno.json --qmax 40
+python integrations.py dans examples/silicon_fcc.json --qmax 45 --json dans_si.json
+python integrations.py dans examples/hexagonal_zno.json --qmax 40
 ```
 
 The adapter generates hkl itself using A, so Dans' Cartesian frame never enters the comparison. It calls only `Crystal(cif)`, `Scatter.setup_scatter(scattering_type="xray", energy_kev=…)`, `Scatter.intensity(hkl)` and `Cell.Qmag(hkl)`. The comparison runs in order: q per hkl, then absences, then \|F\|² normalized to the strongest reflection. Expected results:
@@ -72,7 +72,7 @@ The adapter generates hkl itself using A, so Dans' Cartesian frame never enters 
 - **Silicon:** 111, 220 and 311 at about 20.04, 32.72 and 38.37 nm⁻¹; 200 and 222 absent.
 - **ZnO:** a q mismatch here usually means a plane normal was converted with Aᵀ instead of A⁻¹. The test suite checks that this error is caught.
 
-If intensity ratios differ, check that both codes use the same f0 table, no anomalous terms, and the same B convention. Pass extra `setup_scatter` options through `run_comparison(..., setup_kwargs=…)`. `dans.oriented_spots` rotates the reflections with each R and U, and weights them by site fractions as in waxs.py.
+If intensity ratios differ, check that both codes use the same f0 table, no anomalous terms, and the same B convention. Pass extra `setup_scatter` options through `run_comparison(..., setup_kwargs=…)`. `oriented_spots` rotates the reflections with each R and U, and weights them by site fractions as in waxs.py.
 
 ## CrystalMaker / SingleCrystal
 
@@ -85,9 +85,9 @@ If intensity ratios differ, check that both codes use the same f0 table, no anom
 ## BornAgain
 
 ```sh
-python -m integrations.cli bornagain examples/silicon_fcc.json ba/si --experiment examples/experiment_gisaxs.json --repeat 1 1 1
+python integrations.py bornagain examples/silicon_fcc.json ba/si --experiment examples/experiment_gisaxs.json --repeat 1 1 1
 python ba/si/bornagain_run.py                     # in an environment with BornAgain
-python -m integrations.cli compare-detector examples/silicon_fcc.json ba/si/bornagain_result.csv --experiment examples/experiment_gisaxs.json --repeat 1 1 1
+python integrations.py compare-detector examples/silicon_fcc.json ba/si/bornagain_result.csv --experiment examples/experiment_gisaxs.json --repeat 1 1 1
 python visualize_superlattice.py examples/silicon_fcc.json --overlay ba/si/bornagain_result.csv
 ```
 
@@ -114,10 +114,10 @@ Use `compare-detector` at each step. It reports the log correlation, the median 
 ## Finite atomistic assemblies, AES-Debye and DebUsSy
 
 ```sh
-python -m integrations.cli atomistic examples/silicon_fcc.json atoms/si --estimate-only
-python -m integrations.cli atomistic examples/silicon_fcc.json atoms/si --repeat 1 1 1 --radius 2
-python -m integrations.cli debye examples/silicon_fcc.json debye/si.csv --repeat 1 1 1 --radius 2 --bin 0.0005 --isolated
-python -m integrations.cli compare-profiles debye/si.csv debye/si_isolated.csv
+python integrations.py atomistic examples/silicon_fcc.json atoms/si --estimate-only
+python integrations.py atomistic examples/silicon_fcc.json atoms/si --repeat 1 1 1 --radius 2
+python integrations.py debye examples/silicon_fcc.json debye/si.csv --repeat 1 1 1 --radius 2 --bin 0.0005 --isolated
+python integrations.py compare-profiles debye/si.csv debye/si_isolated.csv
 ```
 
 **Termination.** The fractional point `origin_frac` of the atomic lattice (default [0,0,0]) sits at the particle center. An atom is kept if it lies within 1e-9 nm of the envelope or inside it. Spheres use the exact radius. Other built-in shapes use their face planes, and nonconvex custom meshes use a winding-number test.
@@ -126,12 +126,12 @@ python -m integrations.cli compare-profiles debye/si.csv debye/si_isolated.csv
 
 **Disorder.** `--position-sigma` (nm) and `--rotation-sigma` (degrees) add seeded Gaussian disorder.
 
-**Debye reference.** `integrations/debye.py` evaluates I(q) = Σ w_a f_a² + 2 Σ_{a<b} w_a w_b f_a f_b sin(q r_ab)/(q r_ab), including pairs between particles. `--isolated` also writes the sum of isolated particles, which is the limit of incoherent addition at wide angles. The histogram mode (`--bin`) agrees with the exact sum to about 1e-5 of the peak intensity at a 0.1 pm bin.
+**Debye reference.** The debye section of `integrations.py` evaluates I(q) = Σ w_a f_a² + 2 Σ_{a<b} w_a w_b f_a f_b sin(q r_ab)/(q r_ab), including pairs between particles. `--isolated` also writes the sum of isolated particles, which is the limit of incoherent addition at wide angles. The histogram mode (`--bin`) agrees with the exact sum to about 1e-5 of the peak intensity at a 0.1 pm bin.
 
 **AES-Debye.**
 
 ```sh
-python -m integrations.cli aes-debye examples/silicon_fcc.json aes/si --repeat 1 1 1 --radius 2 \
+python integrations.py aes-debye examples/silicon_fcc.json aes/si --repeat 1 1 1 --radius 2 \
     --command "aes-debye {xyz} --q {qgrid} -o {output}"
 ```
 
@@ -140,8 +140,8 @@ This writes `assembly.xyz` (extended XYZ in Å, with occupancy and particle colu
 **DebUsSy.**
 
 ```sh
-python -m integrations.cli debussy examples/silicon_fcc.json debussy/si --measured measured.csv
-python -m integrations.cli apply-fit examples/silicon_fcc.json fit.json refined.json
+python integrations.py debussy examples/silicon_fcc.json debussy/si --measured measured.csv
+python integrations.py apply-fit examples/silicon_fcc.json fit.json refined.json
 python visualize_superlattice.py refined.json -o refined.html
 ```
 
@@ -150,7 +150,7 @@ The bundle holds the CIF, the particle model and `measured.dat` (q in Å⁻¹, I
 ## ScatterSim and DISCUS
 
 ```sh
-python -m integrations.cli scattersim examples/silicon_fcc.json scattersim/si --qmax 1.6
+python integrations.py scattersim examples/silicon_fcc.json scattersim/si --qmax 1.6
 ```
 
 This writes the lattice, particle and orientation parameters, along with two NanoSuperlattice curves:
@@ -160,12 +160,12 @@ This writes the lattice, particle and orientation parameters, along with two Nan
 
 These differ for any anisotropic assembly, so compare ScatterSim with the powder curve. Start with a sphere lattice, then move to an anisotropic particle.
 
-The `atomistic` command also writes `assembly.discus`, a finite cluster in a 1 Å orthonormal cell with Cartesian Å coordinates and B in Å². `formats.discus_cell_text(config["atomic"])` writes the periodic cell instead.
+The `atomistic` command also writes `assembly.discus`, a finite cluster in a 1 Å orthonormal cell with Cartesian Å coordinates and B in Å². `discus_cell_text(config["atomic"])` writes the periodic cell instead.
 
 ## Symmetry operations versus physical domains
 
 ```sh
-python -m integrations.cli symmetry examples/silicon_fcc.json
+python integrations.py symmetry examples/silicon_fcc.json
 ```
 
 For each pair of variants, Δ = R_iᵀ R_j is tested against three groups:

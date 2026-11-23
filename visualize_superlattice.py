@@ -126,7 +126,7 @@ def build_scene(config):
 def write_viewer(config, output, *, scattering=None, overlays=()):
     """Write a self-contained viewer that can be opened locally in a browser.
 
-    overlays are datasets from integrations.results.read_dataset. Profiles are
+    overlays are datasets from integrations.read_dataset. Profiles are
     drawn over the matching SAXS or WAXS profile; detector images get their
     own panel with their recorded axes.
     """
@@ -137,7 +137,7 @@ def write_viewer(config, output, *, scattering=None, overlays=()):
         from scattering import simulate_scattering
         scene["scattering"] = simulate_scattering(config, scene)
     if overlays:
-        from integrations.results import viewer_payload
+        from integrations import viewer_payload
         scene["imported"] = [viewer_payload(d) for d in overlays]
     payload = json.dumps(scene, ensure_ascii=True, separators=(",", ":"), allow_nan=False)
     # A label may contain HTML characters. Keep the embedded script element intact.
@@ -166,7 +166,7 @@ def main():
         config = json.loads(args.config.read_text(encoding="utf-8-sig"))
         overlays = []
         if args.overlay:
-            from integrations.results import parse_overlay_argument
+            from integrations import parse_overlay_argument
             overlays = [parse_overlay_argument(text) for text in args.overlay]
             for dataset in overlays:
                 for warning in dataset["warnings"]:
