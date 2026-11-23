@@ -2,9 +2,9 @@
 
 import numpy as np
 
-from crystal_geometry import index_vector
-from saxs import simulate_saxs
-from waxs import simulate_waxs
+from .crystal_geometry import index_vector
+from .saxs import simulate_saxs
+from .waxs import simulate_waxs
 
 
 def _label(spec):
@@ -74,7 +74,7 @@ def simulate_scattering(config, scene=None):
     All q values use the 2*pi/d convention with lengths in nm.
     """
     if scene is None:
-        from visualize_superlattice import build_scene
+        from .visualize_superlattice import build_scene
         scene = build_scene(config)
 
     options = config.get("scattering", {})

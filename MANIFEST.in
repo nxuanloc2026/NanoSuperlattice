@@ -1,0 +1,3 @@
+include README.md INTEGRATIONS.md
+recursive-include examples *.json
+recursive-include tests *.py

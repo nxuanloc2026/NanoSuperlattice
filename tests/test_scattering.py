@@ -1,4 +1,4 @@
-"""Numerical regression checks. Run with python -m unittest test_scattering."""
+"""Numerical regression checks. Run with python -m unittest discover tests."""
 
 import copy
 import json
@@ -7,13 +7,13 @@ import unittest
 
 import numpy as np
 
-from scattering import simulate_scattering
-from saxs import simulate_saxs
-from visualize_superlattice import build_scene
+from nanosuperlattice.scattering import simulate_scattering
+from nanosuperlattice.saxs import simulate_saxs
+from nanosuperlattice.visualize_superlattice import build_scene
 
 
 def example(name):
-    path = Path(__file__).parent / "examples" / (name + ".json")
+    path = Path(__file__).resolve().parent.parent / "examples" / (name + ".json")
     return json.loads(path.read_text(encoding="utf-8"))
 
 

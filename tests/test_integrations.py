@@ -1,4 +1,4 @@
-"""Checks for the optional integration adapters. Run: python -m unittest test_integrations
+"""Checks for the optional integration adapters. Run: python -m unittest discover tests
 
 Tests that need Dans_Diffraction or BornAgain are skipped when those packages
 are not installed; everything else uses NumPy only.
@@ -15,12 +15,12 @@ import unittest
 
 import numpy as np
 
-from crystal_geometry import lattice_matrix
-import integrations as nsi
-from integrations import laboratory_matrix, reciprocal_vectors, saxs_powder_profile, to_q_nm_inv, two_theta_deg
-from visualize_superlattice import build_scene, write_viewer
+from nanosuperlattice.crystal_geometry import lattice_matrix
+import nanosuperlattice.integrations as nsi
+from nanosuperlattice.integrations import laboratory_matrix, reciprocal_vectors, saxs_powder_profile, to_q_nm_inv, two_theta_deg
+from nanosuperlattice.visualize_superlattice import build_scene, write_viewer
 
-HERE = Path(__file__).parent
+HERE = Path(__file__).resolve().parent.parent
 
 
 def example(name):
@@ -358,7 +358,7 @@ class AtomisticTests(unittest.TestCase):
 
 class DebyeTests(unittest.TestCase):
     def test_two_atoms_and_histogram(self):
-        from waxs import _atomic_factor
+        from nanosuperlattice.waxs import _atomic_factor
         q = np.linspace(0.5, 50, 200)
         x = np.array([[0, 0, 0], [0.3, 0.1, 0]])
         f = _atomic_factor("Si", q, {})

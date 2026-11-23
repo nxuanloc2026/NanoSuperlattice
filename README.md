@@ -4,14 +4,22 @@ NanoSuperlattice shows how each nanocrystal's atomic lattice is oriented within 
 
 ## Quick start
 
-Install Python 3.9 or later. Clone the repository, install NumPy, and generate the silicon example.
+Install Python 3.9 or later. Clone the repository, install the package (this also installs NumPy), and generate the silicon example.
 
 ```sh
 git clone https://github.com/nxuanloc2026/NanoSuperlattice.git
 cd NanoSuperlattice
-python -m pip install numpy
-python visualize_superlattice.py examples/silicon_fcc.json -o silicon.html
+python -m pip install -e .
+nanosuperlattice examples/silicon_fcc.json -o silicon.html
 ```
+
+`python -m nanosuperlattice` runs the same command from a checkout without installing anything except NumPy. The test release on TestPyPI installs with:
+
+```sh
+python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ nanosuperlattice
+```
+
+Optional extras pull in the external codes used by the integration commands: `pip install "nanosuperlattice[bornagain]"`, `"nanosuperlattice[dans]"` or `"nanosuperlattice[all]"`. The example configurations are in the [examples folder](https://github.com/nxuanloc2026/NanoSuperlattice/tree/main/examples) of the repository.
 
 Open `silicon.html` in a browser. It works offline. Click a particle in the assembly on the left to see its atomic unit cell on the right. The two panels share a camera and use separate length scales.
 
@@ -21,10 +29,10 @@ For silicon, select **O1**, choose the [110] NC ∥ [111] SL alignment, and clic
 
 | Input | What to look for |
 |---|---|
-| [Silicon cuboctahedra on an FCC superlattice](examples/silicon_fcc.json) | Three orientation variants share a [110] atomic zone axis. The first three powder reflections are 111, 220, and 311 at approximately 20.04, 32.72, and 38.37 nm⁻¹. |
-| [Wurtzite ZnO on a hexagonal superlattice](examples/hexagonal_zno.json) | Switch between basal and inclined variants to see how either the (001) or the (101) atomic plane can lie parallel to the same assembly layers. |
+| [Silicon cuboctahedra on an FCC superlattice](https://github.com/nxuanloc2026/NanoSuperlattice/blob/main/examples/silicon_fcc.json) | Three orientation variants share a [110] atomic zone axis. The first three powder reflections are 111, 220, and 311 at approximately 20.04, 32.72, and 38.37 nm⁻¹. |
+| [Wurtzite ZnO on a hexagonal superlattice](https://github.com/nxuanloc2026/NanoSuperlattice/blob/main/examples/hexagonal_zno.json) | Switch between basal and inclined variants to see how either the (001) or the (101) atomic plane can lie parallel to the same assembly layers. |
 
-To build the second example, run `python visualize_superlattice.py examples/hexagonal_zno.json -o zno.html`. The particle-site assignments in both demonstrations are illustrative.
+To build the second example, run `nanosuperlattice examples/hexagonal_zno.json -o zno.html`. The particle-site assignments in both demonstrations are illustrative.
 
 ### Reading the scattering output
 
@@ -81,8 +89,8 @@ For a particle at superlattice position t, any atomic or shape coordinate x is p
 Both example files enable scattering. For an existing material without a scattering block, add the command-line flag. The geometry-only mode is also available.
 
 ```sh
-python visualize_superlattice.py material.json --scattering -o scattering.html
-python visualize_superlattice.py material.json --no-scattering -o geometry.html
+nanosuperlattice material.json --scattering -o scattering.html
+nanosuperlattice material.json --no-scattering -o geometry.html
 ```
 
 Open the **SAXS** and **WAXS** views in the generated HTML to inspect the maps and profiles. CSV downloads preserve the calculated intensities before display normalization. A map pixel is evaluated at **q = qₓ eₓ + qᵧ eᵧ** in a central slice of reciprocal space. A fixed slice makes it possible to orbit the real-space model without changing the scattering experiment. The maps are ideal reciprocal-space sections. Modeling a particular transmission detector or grazing-incidence experiment requires its Ewald-sphere intersection and experimental geometry.
@@ -117,15 +125,14 @@ For each atomic reciprocal vector **G** with Miller indices (h,k,l), the kinemat
 
 The WAXS profile is a **three-dimensional powder orientational mean** of the broadened reflections. Rotating a variant affects the slice while leaving the powder profile invariant. For each powder line the table lists a representative hkl, the summed multiplicity, q, d = 2π/q, 2θ and the integrated reciprocal-space weight Σ|F|². Distinct families that share the same spacing contribute to the same powder line. Individual atomic sites can specify `occupancy` (default 1) and an isotropic displacement parameter `b_iso_nm2` (default 0) for WAXS amplitudes. The model omits absorption, anomalous dispersion, detector polarization and grazing-incidence refraction.
 
-The bundled `f0_WaasKirf.dat` provides q-dependent X-ray scattering factors for tabulated neutral atoms and ions. For other species labels, configure `waxs.form_factors` as a mapping from label to a constant electron amplitude or to `{"a":[...],"b":[...],"c":...}` for f(q) = Σ aᵢ exp(−bᵢs²) + c, s = q/(40π) in Å⁻¹ when q is in nm⁻¹. [IUCr structure factor](https://dictionary.iucr.org/Structure_factor) · [Waasmaier & Kirfel](https://doi.org/10.1107/S0108767394013292) · [DABAX data](https://github.com/oasys-kit/DabaxFiles/blob/main/f0_WaasKirf.dat)
+The bundled `nanosuperlattice/f0_WaasKirf.dat` provides q-dependent X-ray scattering factors for tabulated neutral atoms and ions. For other species labels, configure `waxs.form_factors` as a mapping from label to a constant electron amplitude or to `{"a":[...],"b":[...],"c":...}` for f(q) = Σ aᵢ exp(−bᵢs²) + c, s = q/(40π) in Å⁻¹ when q is in nm⁻¹. [IUCr structure factor](https://dictionary.iucr.org/Structure_factor) · [Waasmaier & Kirfel](https://doi.org/10.1107/S0108767394013292) · [DABAX data](https://github.com/oasys-kit/DabaxFiles/blob/main/f0_WaasKirf.dat)
 
 ## Use from Python
 
 ```python
 import json
 from pathlib import Path
-from visualize_superlattice import build_scene, write_viewer
-from scattering import simulate_scattering
+from nanosuperlattice import build_scene, simulate_scattering, write_viewer
 
 config = json.loads(Path("examples/hexagonal_zno.json").read_text(encoding="utf-8"))
 scene = build_scene(config)
@@ -138,22 +145,22 @@ write_viewer(config, "zno.html", scattering=True)
 
 ## Connect external software
 
-The optional single-file module `integrations.py` exports the model as CIF, particle-center, orientation and run-metadata files. It imports external results, with their units and provenance, for overlay in the viewer. It also bridges to Dans_Diffraction, CrystalMaker / SingleCrystal, BornAgain, AES-Debye, DebUsSy, ScatterSim and DISCUS, and includes a NumPy Debye-equation reference for finite atomistic assemblies.
+The optional module `nanosuperlattice.integrations` (command `nanosuperlattice-integrations`) exports the model as CIF, particle-center, orientation and run-metadata files. It imports external results, with their units and provenance, for overlay in the viewer. It also bridges to Dans_Diffraction, CrystalMaker / SingleCrystal, BornAgain, AES-Debye, DebUsSy, ScatterSim and DISCUS, and includes a NumPy Debye-equation reference for finite atomistic assemblies.
 
 ```sh
-python integrations.py export examples/silicon_fcc.json exchange/si
-python integrations.py roundtrip examples/hexagonal_zno.json exchange/zno
-python visualize_superlattice.py examples/silicon_fcc.json --overlay exchange/si/scattering_waxs.csv
+nanosuperlattice-integrations export examples/silicon_fcc.json exchange/si
+nanosuperlattice-integrations roundtrip examples/hexagonal_zno.json exchange/zno
+nanosuperlattice examples/silicon_fcc.json --overlay exchange/si/scattering_waxs.csv
 ```
 
-[INTEGRATIONS.md](INTEGRATIONS.md) covers the conventions, each tool's workflow, and which adapter steps still need validation against an installed copy of that software.
+[INTEGRATIONS.md](https://github.com/nxuanloc2026/NanoSuperlattice/blob/main/INTEGRATIONS.md) covers the conventions, each tool's workflow, and which adapter steps still need validation against an installed copy of that software.
 
 ## Verify the installation
 
 Run the numerical regression tests from the repository root.
 
 ```sh
-python -m unittest -v test_scattering test_integrations
+python -m unittest discover -v tests
 ```
 
 The three scattering tests check the sphere form factor and FCC centering, diamond-silicon reflection conditions and powder invariance, and hexagonal ZnO spacings. The integration tests check exchange round trips, reflection comparisons, importer units, BornAgain geometry, atomistic assemblies, the Debye equation and symmetry classification. Tests that need Dans_Diffraction or BornAgain are skipped when those packages are absent.

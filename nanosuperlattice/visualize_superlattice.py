@@ -1,7 +1,8 @@
 """Build a portable, interactive HTML view of an oriented nanocrystal superlattice.
 
 Lengths are in nanometers, cell angles in degrees, and site positions fractional.
-Run: python visualize_superlattice.py examples/silicon_fcc.json -o silicon.html
+Run: nanosuperlattice examples/silicon_fcc.json -o silicon.html
+(or python -m nanosuperlattice ... from a checkout)
 """
 
 import argparse
@@ -12,7 +13,7 @@ import re
 
 import numpy as np
 
-from crystal_geometry import index_vector, lattice_matrix, orientation_matrix, particle_mesh
+from .crystal_geometry import index_vector, lattice_matrix, orientation_matrix, particle_mesh
 
 
 HERE = Path(__file__).resolve().parent
@@ -134,10 +135,10 @@ def write_viewer(config, output, *, scattering=None, overlays=()):
     if scattering is None:
         scattering = "scattering" in config
     if scattering:
-        from scattering import simulate_scattering
+        from .scattering import simulate_scattering
         scene["scattering"] = simulate_scattering(config, scene)
     if overlays:
-        from integrations import viewer_payload
+        from .integrations import viewer_payload
         scene["imported"] = [viewer_payload(d) for d in overlays]
     payload = json.dumps(scene, ensure_ascii=True, separators=(",", ":"), allow_nan=False)
     # A label may contain HTML characters. Keep the embedded script element intact.
@@ -152,7 +153,8 @@ def write_viewer(config, output, *, scattering=None, overlays=()):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(prog="nanosuperlattice", description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("config", type=Path, help="JSON material and assembly definition")
     parser.add_argument("-o", "--output", type=Path, help="Output HTML (default: beside the input)")
     parser.add_argument("--scattering", action=argparse.BooleanOptionalAction, default=None,
@@ -166,7 +168,7 @@ def main():
         config = json.loads(args.config.read_text(encoding="utf-8-sig"))
         overlays = []
         if args.overlay:
-            from integrations import parse_overlay_argument
+            from .integrations import parse_overlay_argument
             overlays = [parse_overlay_argument(text) for text in args.overlay]
             for dataset in overlays:
                 for warning in dataset["warnings"]:
