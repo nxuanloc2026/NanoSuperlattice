@@ -1,20 +1,39 @@
-# Nanocrystal superlattice visualizer
+# NanoSuperlattice
 
-Generate an offline, interactive 3D view of a nanocrystal assembly and the atomic unit cell of a selected particle. The viewer can also simulate X-ray small-angle scattering (SAXS) and wide-angle scattering (WAXS) from the same material and orientations. Python and NumPy build the HTML file. A modern browser displays it without a server or internet connection.
+NanoSuperlattice shows how each nanocrystal's atomic lattice is oriented within a larger particle assembly and predicts the resulting X-ray scattering. Give it the two unit cells, their atomic and particle positions, and an orientation relationship. Python and NumPy generate a standalone HTML file with linked 3D views, scattering maps, and downloadable numerical data.
 
-## Run an example
+## Quick start
 
-With Python 3.9 or later, run these commands from the directory containing this file.
+Install Python 3.9 or later. Clone the repository, install NumPy, and generate the silicon example.
 
 ```sh
+git clone https://github.com/nxuanloc2026/NanoSuperlattice.git
+cd NanoSuperlattice
 python -m pip install numpy
 python visualize_superlattice.py examples/silicon_fcc.json -o silicon.html
-python visualize_superlattice.py examples/hexagonal_zno.json -o zno.html
 ```
 
-Open either HTML file in your browser. Click a particle or choose a variant in the atomic panel. Toggle **Particle axes** to draw that particle's direct-cell axes in the assembly. A magenta arrow in each panel shows the selected direction or plane normal. **Look along alignment** looks down that arrow. Drag either panel to rotate both, or use the arrow keys with a panel focused. Expand **NC → SL rotation matrix** to inspect the numeric transform.
+Open `silicon.html` in a browser. It works offline. Click a particle in the assembly on the left to see its atomic unit cell on the right. The two panels share a camera and use separate length scales.
 
-In the silicon example, choose the first alignment and look along it. Then select the second alignment **without moving the camera**. Cycle through O1, O2, and O3. The [110] silicon direction stays aligned with [111] of the superlattice while the in-plane arrow turns through three azimuths. In the ZnO example, switch between the basal and inclined variants to see which atomic planes lie parallel to the assembly layers. Example site assignments are illustrative.
+For silicon, select **O1**, choose the [110] NC ∥ [111] SL alignment, and click **Look along alignment**. Switch to the second alignment while keeping that camera position. Cycle through **O1**, **O2**, and **O3** to see the in-plane arrow turn through three azimuths. **NC** denotes the nanocrystal atomic lattice and **SL** the superlattice of particle centers.
+
+### Included examples
+
+| Input | What to look for |
+|---|---|
+| [Silicon cuboctahedra on an FCC superlattice](examples/silicon_fcc.json) | Three orientation variants share a [110] atomic zone axis. The first three powder reflections are 111, 220, and 311 at approximately 20.04, 32.72, and 38.37 nm⁻¹. |
+| [Wurtzite ZnO on a hexagonal superlattice](examples/hexagonal_zno.json) | Switch between basal and inclined variants to see how either the (001) or the (101) atomic plane can lie parallel to the same assembly layers. |
+
+To build the second example, run `python visualize_superlattice.py examples/hexagonal_zno.json -o zno.html`. The particle-site assignments in both demonstrations are illustrative.
+
+### Reading the scattering output
+
+| View | What it measures in the model | CSV output |
+|---|---|---|
+| Small angle (SAXS) | Interference between particles, including their envelopes, orientations, and positions. The profile averages over azimuth in the selected reciprocal-space slice. | Map, profile, and local maxima with apparent spacings |
+| Wide angle (WAXS) | Diffraction from the atomic basis. The map shows the specified orientation population. The powder profile averages over all directions. | Map, profile, and indexed reflections with spacing, multiplicity, and scattering angle |
+
+To enter your own structure, see [Define another material](#define-another-material). For q ranges, contrast, peak widths, and modeling assumptions, see [Simulate SAXS and WAXS](#simulate-saxs-and-waxs).
 
 ## Define another material
 
@@ -116,5 +135,17 @@ print(result["waxs"]["peaks"][0])  # q in nm⁻¹, d in nm
 print(result["saxs"]["maxima"])    # local maxima of the slice-averaged curve
 write_viewer(config, "zno.html", scattering=True)
 ```
+
+## Verify the installation
+
+Run the numerical regression tests from the repository root.
+
+```sh
+python -m unittest -v test_scattering
+```
+
+The three tests check the sphere form factor and FCC centering, diamond-silicon reflection conditions and powder invariance, and hexagonal ZnO spacings.
+
+## Scientific references
 
 The silicon example uses the orientation relationship and FCC period of Yu et al., *Nano Letters* 16, 7814–7821 (2016). The ZnO atomic coordinates use the 295 K structural data of Kisi and Elcombe. The ZnO superlattice is a constructed example. [Silicon study](https://doi.org/10.1021/acs.nanolett.6b04006) · [ZnO structure](https://doi.org/10.1107/S0108270189004269)
